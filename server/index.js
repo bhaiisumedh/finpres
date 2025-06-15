@@ -201,6 +201,8 @@ class AIServices {
     const medicines = [];
     const textLower = text.toLowerCase();
     
+    console.log('Extracting medicines from text:', textLower.substring(0, 200));
+    
     // Enhanced medicine database with more medications
     const commonMedicines = {
       // Diabetes medications
@@ -311,6 +313,14 @@ class AIServices {
         sideEffects: ['Liver damage (with overdose)', 'Allergic reactions'],
         warnings: ['Do not exceed maximum daily dose', 'Avoid alcohol', 'Check other medications for acetaminophen']
       },
+      'paracetamol': {
+        name: 'Paracetamol',
+        genericName: 'Paracetamol',
+        category: 'Analgesic',
+        purpose: 'Pain and fever relief',
+        sideEffects: ['Liver damage (with overdose)', 'Allergic reactions'],
+        warnings: ['Do not exceed maximum daily dose', 'Avoid alcohol', 'Check other medications for paracetamol']
+      },
       'naproxen': {
         name: 'Naproxen',
         genericName: 'Naproxen Sodium',
@@ -336,6 +346,14 @@ class AIServices {
         sideEffects: ['Nausea', 'Diarrhea', 'Abdominal pain'],
         warnings: ['Complete full course', 'Take on empty stomach', 'Monitor for heart rhythm changes']
       },
+      'ciprofloxacin': {
+        name: 'Ciprofloxacin',
+        genericName: 'Ciprofloxacin',
+        category: 'Antibiotic',
+        purpose: 'Bacterial infection treatment',
+        sideEffects: ['Nausea', 'Diarrhea', 'Tendon problems'],
+        warnings: ['Complete full course', 'Avoid dairy products', 'Report tendon pain']
+      },
       // Thyroid medications
       'levothyroxine': {
         name: 'Levothyroxine',
@@ -353,12 +371,53 @@ class AIServices {
         purpose: 'Depression and anxiety treatment',
         sideEffects: ['Nausea', 'Insomnia', 'Sexual dysfunction'],
         warnings: ['Monitor mood changes', 'Do not stop abruptly', 'May take 4-6 weeks to work']
+      },
+      // Common Indian medications
+      'crocin': {
+        name: 'Crocin',
+        genericName: 'Paracetamol',
+        category: 'Analgesic',
+        purpose: 'Pain and fever relief',
+        sideEffects: ['Liver damage (with overdose)', 'Allergic reactions'],
+        warnings: ['Do not exceed maximum daily dose', 'Avoid alcohol', 'Check other medications for paracetamol']
+      },
+      'dolo': {
+        name: 'Dolo',
+        genericName: 'Paracetamol',
+        category: 'Analgesic',
+        purpose: 'Pain and fever relief',
+        sideEffects: ['Liver damage (with overdose)', 'Allergic reactions'],
+        warnings: ['Do not exceed maximum daily dose', 'Avoid alcohol', 'Check other medications for paracetamol']
+      },
+      'combiflam': {
+        name: 'Combiflam',
+        genericName: 'Ibuprofen + Paracetamol',
+        category: 'NSAID + Analgesic',
+        purpose: 'Pain and inflammation relief',
+        sideEffects: ['Stomach upset', 'Liver damage', 'Kidney problems'],
+        warnings: ['Take with food', 'Monitor liver and kidney function', 'Limit duration of use']
+      },
+      'pantoprazole': {
+        name: 'Pantoprazole',
+        genericName: 'Pantoprazole',
+        category: 'Proton Pump Inhibitor',
+        purpose: 'Acid reflux and ulcer treatment',
+        sideEffects: ['Headache', 'Diarrhea', 'Nausea'],
+        warnings: ['Take before meals', 'Monitor for bone fractures with long-term use', 'May affect B12 absorption']
+      },
+      'omeprazole': {
+        name: 'Omeprazole',
+        genericName: 'Omeprazole',
+        category: 'Proton Pump Inhibitor',
+        purpose: 'Acid reflux and ulcer treatment',
+        sideEffects: ['Headache', 'Diarrhea', 'Nausea'],
+        warnings: ['Take before meals', 'Monitor for bone fractures with long-term use', 'May affect B12 absorption']
       }
     };
 
     // Extract dosage and frequency information with improved patterns
     const dosagePatterns = [
-      /(\d+(?:\.\d+)?)\s*(mg|mcg|g|ml|units?|iu)/gi,
+      /(\d+(?:\.\d+)?)\s*(mg|mcg|g|ml|units?|iu|tab|tablet|cap|capsule)/gi,
       /(\d+(?:\.\d+)?)\s*milligrams?/gi,
       /(\d+(?:\.\d+)?)\s*micrograms?/gi
     ];
@@ -369,19 +428,23 @@ class AIServices {
       /(once|twice|three times|four times)\s*(?:daily|per day|a day)/gi,
       /(every|q)\s*(\d+)\s*(?:hours?|hrs?|h)/gi,
       /(morning|evening|bedtime|with meals|before meals|after meals|bid|tid|qid)/gi,
-      /(\d+)\s*tablet[s]?\s*([^,\n.]+)/gi
+      /(\d+)\s*tablet[s]?\s*([^,\n.]+)/gi,
+      /(\d+)\s*(?:tab|tablet|cap|capsule)[s]?\s*([^,\n.]+)/gi
     ];
 
     // Search for medicines in the text
+    let foundMedicines = 0;
     Object.keys(commonMedicines).forEach(medKey => {
       const regex = new RegExp(`\\b${medKey}\\b`, 'i');
       if (regex.test(textLower)) {
         const medicine = commonMedicines[medKey];
         
+        console.log(`Found medicine: ${medicine.name}`);
+        
         // Extract dosage - look for dosage near the medicine name
         let dosage = 'As prescribed';
         const medicineIndex = textLower.indexOf(medKey);
-        const contextText = text.substring(Math.max(0, medicineIndex - 50), medicineIndex + 100);
+        const contextText = text.substring(Math.max(0, medicineIndex - 100), medicineIndex + 200);
         
         for (const pattern of dosagePatterns) {
           const matches = contextText.match(pattern);
@@ -406,32 +469,50 @@ class AIServices {
           dosage,
           frequency
         });
+        foundMedicines++;
       }
     });
 
+    console.log(`Found ${foundMedicines} medicines in database`);
+
     // If no specific medicines found, try to extract generic medication information
     if (medicines.length === 0) {
+      console.log('No medicines found in database, trying generic extraction...');
+      
       const genericPatterns = [
-        /(?:rx:?|prescription:?|medication:?)\s*([^\n]+)/gi,
+        /(?:rx:?|prescription:?|medication:?|medicine:?|drug:?)\s*([^\n]+)/gi,
         /(\d+(?:\.\d+)?)\s*(?:mg|mcg|g|ml|units?)\s*([a-zA-Z]+)/gi,
-        /([a-zA-Z]+)\s*(\d+(?:\.\d+)?)\s*(?:mg|mcg|g|ml|units?)/gi
+        /([a-zA-Z]+)\s*(\d+(?:\.\d+)?)\s*(?:mg|mcg|g|ml|units?)/gi,
+        /tab\s*([a-zA-Z]+)/gi,
+        /tablet\s*([a-zA-Z]+)/gi,
+        /cap\s*([a-zA-Z]+)/gi,
+        /capsule\s*([a-zA-Z]+)/gi
       ];
       
-      genericPatterns.forEach(pattern => {
+      genericPatterns.forEach((pattern, patternIndex) => {
         const matches = text.match(pattern);
         if (matches) {
-          matches.slice(0, 3).forEach((match, index) => { // Limit to 3 matches
-            const cleanMatch = match.replace(/rx:?|prescription:?|medication:?/gi, '').trim();
-            if (cleanMatch.length > 3) {
+          matches.slice(0, 5).forEach((match, index) => { // Limit to 5 matches per pattern
+            const cleanMatch = match.replace(/rx:?|prescription:?|medication:?|medicine:?|drug:?|tab|tablet|cap|capsule/gi, '').trim();
+            if (cleanMatch.length > 2 && cleanMatch.length < 50) {
+              console.log(`Generic medicine found: ${cleanMatch}`);
+              
+              // Try to extract dosage from the match
+              let dosage = 'As prescribed';
+              const dosageMatch = match.match(/(\d+(?:\.\d+)?)\s*(?:mg|mcg|g|ml|units?)/i);
+              if (dosageMatch) {
+                dosage = dosageMatch[0];
+              }
+              
               medicines.push({
-                name: `Medication ${index + 1}`,
+                name: cleanMatch.charAt(0).toUpperCase() + cleanMatch.slice(1),
                 genericName: cleanMatch,
-                dosage: 'As prescribed',
+                dosage: dosage,
                 frequency: 'As directed',
                 purpose: 'Treatment as prescribed by physician',
                 category: 'Prescription medication',
                 sideEffects: ['Consult healthcare provider for side effects'],
-                warnings: ['Follow prescribed dosage', 'Consult doctor before stopping']
+                warnings: ['Follow prescribed dosage', 'Consult doctor before stopping', 'Report any adverse reactions']
               });
             }
           });
@@ -439,7 +520,8 @@ class AIServices {
       });
     }
 
-    return medicines;
+    console.log(`Total medicines extracted: ${medicines.length}`);
+    return medicines.slice(0, 10); // Limit to 10 medicines
   }
 
   static extractSymptoms(text) {
@@ -455,7 +537,8 @@ class AIServices {
       'weight gain', 'weight loss', 'appetite changes',
       'swelling', 'edema', 'bloating',
       'rash', 'itching', 'skin problems',
-      'constipation', 'diarrhea', 'stomach pain'
+      'constipation', 'diarrhea', 'stomach pain',
+      'acidity', 'gastritis', 'indigestion'
     ];
 
     const foundSymptoms = [];
@@ -471,14 +554,15 @@ class AIServices {
     const diagnosisPatterns = [
       /(?:diagnosis|dx):?\s*([^\n.]+)/gi,
       /(?:condition|chief complaint):?\s*([^\n.]+)/gi,
-      /(?:presenting with|symptoms include):?\s*([^\n.]+)/gi
+      /(?:presenting with|symptoms include):?\s*([^\n.]+)/gi,
+      /(?:complaint|problem):?\s*([^\n.]+)/gi
     ];
 
     diagnosisPatterns.forEach(pattern => {
       const matches = text.match(pattern);
       if (matches) {
         matches.forEach(match => {
-          const symptom = match.replace(/diagnosis|dx|condition|chief complaint|presenting with|symptoms include/gi, '').replace(/[:]/g, '').trim();
+          const symptom = match.replace(/diagnosis|dx|condition|chief complaint|presenting with|symptoms include|complaint|problem/gi, '').replace(/[:]/g, '').trim();
           if (symptom && symptom.length > 2 && symptom.length < 100) {
             foundSymptoms.push(symptom);
           }
@@ -519,6 +603,8 @@ class AIServices {
     const medicineNames = medicines.map(m => m.name.toLowerCase());
     const medicineText = medicineNames.join(' ');
     
+    console.log('Medicine names for diagnosis:', medicineNames);
+    
     // Diabetes detection
     if (medicineText.includes('metformin') || medicineText.includes('insulin') || 
         medicineText.includes('glipizide') || medicineText.includes('glyburide')) {
@@ -550,7 +636,8 @@ class AIServices {
     }
 
     // Infection detection
-    if (medicineText.includes('amoxicillin') || medicineText.includes('azithromycin')) {
+    if (medicineText.includes('amoxicillin') || medicineText.includes('azithromycin') || 
+        medicineText.includes('ciprofloxacin')) {
       primaryDiagnosis = 'Bacterial Infection';
       confidence = 0.85;
     }
@@ -569,12 +656,24 @@ class AIServices {
 
     // Pain management detection
     if (medicineText.includes('ibuprofen') || medicineText.includes('naproxen') || 
-        medicineText.includes('acetaminophen')) {
+        medicineText.includes('acetaminophen') || medicineText.includes('paracetamol') ||
+        medicineText.includes('crocin') || medicineText.includes('dolo') || 
+        medicineText.includes('combiflam')) {
       if (primaryDiagnosis === 'General Health Maintenance') {
         primaryDiagnosis = 'Pain Management';
         confidence = 0.80;
       } else {
         secondaryConditions.push('Pain Management');
+      }
+    }
+
+    // Gastric issues detection
+    if (medicineText.includes('pantoprazole') || medicineText.includes('omeprazole')) {
+      if (primaryDiagnosis === 'General Health Maintenance') {
+        primaryDiagnosis = 'Gastroesophageal Reflux Disease (GERD)';
+        confidence = 0.85;
+      } else {
+        secondaryConditions.push('Gastric Issues');
       }
     }
 
@@ -612,6 +711,7 @@ class AIServices {
       'Hypothyroidism': ['Family history', 'Autoimmune conditions', 'Age', 'Gender (more common in women)'],
       'Depression/Anxiety Disorder': ['Family history', 'Stress', 'Trauma', 'Medical conditions', 'Substance abuse'],
       'Pain Management': ['Injury', 'Chronic conditions', 'Age', 'Physical activity level'],
+      'Gastroesophageal Reflux Disease (GERD)': ['Obesity', 'Smoking', 'Pregnancy', 'Hiatal hernia', 'Certain foods'],
       'General Health Maintenance': ['Age', 'Lifestyle factors', 'Environmental factors', 'Genetics']
     };
     
@@ -627,6 +727,7 @@ class AIServices {
       'Hypothyroidism': ['Heart problems', 'Mental health issues', 'Peripheral neuropathy', 'Myxedema'],
       'Depression/Anxiety Disorder': ['Suicide risk', 'Substance abuse', 'Social isolation', 'Physical health problems'],
       'Pain Management': ['Chronic pain syndrome', 'Medication dependence', 'Reduced quality of life'],
+      'Gastroesophageal Reflux Disease (GERD)': ['Esophagitis', 'Barrett\'s esophagus', 'Esophageal cancer', 'Respiratory problems'],
       'General Health Maintenance': ['Age-related conditions', 'Chronic diseases', 'Functional decline']
     };
     
@@ -642,6 +743,7 @@ class AIServices {
       'Hypothyroidism': 'Excellent with proper thyroid hormone replacement therapy',
       'Depression/Anxiety Disorder': 'Good with appropriate treatment and support',
       'Pain Management': 'Variable depending on underlying cause and treatment response',
+      'Gastroesophageal Reflux Disease (GERD)': 'Good with proper medication and lifestyle modifications',
       'General Health Maintenance': 'Excellent with preventive care and healthy lifestyle'
     };
     
@@ -716,6 +818,14 @@ class AIServices {
         'Apply heat or cold as appropriate',
         'Practice stress management techniques',
         'Keep a pain diary to track patterns'
+      ],
+      'Gastroesophageal Reflux Disease (GERD)': [
+        'Take acid-reducing medications as prescribed',
+        'Avoid trigger foods (spicy, acidic, fatty foods)',
+        'Eat smaller, more frequent meals',
+        'Avoid lying down immediately after eating',
+        'Elevate the head of your bed',
+        'Maintain healthy weight'
       ]
     };
 
@@ -760,6 +870,11 @@ app.post('/api/analyze-prescription', upload.single('prescription'), async (req,
     // Step 2: Analyze medical content
     const analysisResult = await AIServices.analyzeMedicalText(ocrResult.extractedText);
     
+    console.log('Analysis result:', {
+      medicineCount: analysisResult.medicines.length,
+      symptomCount: analysisResult.symptoms.length
+    });
+    
     // Step 3: Predict diagnosis
     const diagnosisResult = await AIServices.predictDiagnosis(
       analysisResult.symptoms, 
@@ -792,6 +907,12 @@ app.post('/api/analyze-prescription', upload.single('prescription'), async (req,
         { stage: 'Recommendations', completed: true, confidence: 0.95 }
       ]
     };
+
+    console.log('Final result:', {
+      medicineCount: result.medicines.length,
+      diagnosisPrimary: result.diagnosis.primary,
+      recommendationCount: result.recommendations.length
+    });
 
     // Clean up uploaded file after a delay
     setTimeout(() => {
@@ -830,7 +951,7 @@ app.get('/api/medicine/:name', async (req, res) => {
         interactions: ["Alcohol", "Contrast dyes", "Certain antibiotics", "Diuretics", "Corticosteroids"],
         contraindications: ["Severe kidney disease", "Diabetic ketoacidosis", "Severe heart failure", "Liver disease", "Metabolic acidosis"],
         monitoring: ["Kidney function (eGFR)", "Vitamin B12 levels", "Blood glucose", "Lactic acid levels", "Liver function"],
-        cost: "$10-30 per month (generic)",
+        cost: "₹10-50 per month (generic)",
         foodInteractions: "Take with meals to reduce gastrointestinal side effects. Avoid excessive alcohol consumption."
       },
       "Lisinopril": {
@@ -838,7 +959,7 @@ app.get('/api/medicine/:name', async (req, res) => {
         interactions: ["NSAIDs", "Potassium supplements", "Diuretics", "Lithium", "Aliskiren"],
         contraindications: ["Pregnancy", "History of angioedema", "Bilateral renal artery stenosis", "Hyperkalemia"],
         monitoring: ["Blood pressure", "Kidney function", "Potassium levels", "Cough development", "Angioedema signs"],
-        cost: "$5-15 per month (generic)",
+        cost: "₹15-40 per month (generic)",
         foodInteractions: "Can be taken with or without food. Avoid salt substitutes containing potassium."
       },
       "Atorvastatin": {
@@ -846,7 +967,7 @@ app.get('/api/medicine/:name', async (req, res) => {
         interactions: ["Grapefruit juice", "Certain antibiotics", "Antifungals", "Cyclosporine", "Gemfibrozil"],
         contraindications: ["Active liver disease", "Pregnancy", "Breastfeeding", "Unexplained elevated liver enzymes"],
         monitoring: ["Liver function tests", "Lipid profile", "Muscle symptoms", "Creatine kinase", "Diabetes screening"],
-        cost: "$15-40 per month (generic)",
+        cost: "₹30-80 per month (generic)",
         foodInteractions: "Avoid grapefruit and grapefruit juice. Can be taken with or without food."
       },
       "Insulin": {
@@ -854,7 +975,7 @@ app.get('/api/medicine/:name', async (req, res) => {
         interactions: ["Beta-blockers", "ACE inhibitors", "Alcohol", "Corticosteroids", "Thiazide diuretics"],
         contraindications: ["Hypoglycemia", "Known hypersensitivity to insulin or its components"],
         monitoring: ["Blood glucose levels", "HbA1c", "Weight changes", "Injection site rotation", "Hypoglycemia episodes"],
-        cost: "$100-300 per month (varies by type)",
+        cost: "₹200-800 per month (varies by type)",
         foodInteractions: "Timing with meals is crucial for glucose control. Consistent carbohydrate intake recommended."
       },
       "Ibuprofen": {
@@ -862,8 +983,32 @@ app.get('/api/medicine/:name', async (req, res) => {
         interactions: ["Blood thinners", "ACE inhibitors", "Diuretics", "Methotrexate", "Lithium"],
         contraindications: ["Active GI bleeding", "Severe heart failure", "Severe kidney disease", "Aspirin allergy"],
         monitoring: ["Kidney function", "Blood pressure", "GI symptoms", "Cardiovascular risk factors", "Liver function"],
-        cost: "$5-20 per month (OTC)",
+        cost: "₹10-30 per month (OTC)",
         foodInteractions: "Take with food or milk to reduce stomach irritation. Avoid alcohol."
+      },
+      "Paracetamol": {
+        description: "Paracetamol (Acetaminophen) is a widely used analgesic and antipyretic medication for pain relief and fever reduction.",
+        interactions: ["Warfarin", "Alcohol", "Certain antibiotics", "Seizure medications"],
+        contraindications: ["Severe liver disease", "Known hypersensitivity to paracetamol"],
+        monitoring: ["Liver function", "Daily dose limits", "Signs of overdose", "Allergic reactions"],
+        cost: "₹5-20 per month (OTC)",
+        foodInteractions: "Can be taken with or without food. Avoid alcohol to prevent liver damage."
+      },
+      "Crocin": {
+        description: "Crocin contains Paracetamol and is commonly used for pain relief and fever reduction in India.",
+        interactions: ["Warfarin", "Alcohol", "Certain antibiotics", "Seizure medications"],
+        contraindications: ["Severe liver disease", "Known hypersensitivity to paracetamol"],
+        monitoring: ["Liver function", "Daily dose limits", "Signs of overdose", "Allergic reactions"],
+        cost: "₹10-25 per strip",
+        foodInteractions: "Can be taken with or without food. Avoid alcohol to prevent liver damage."
+      },
+      "Pantoprazole": {
+        description: "Pantoprazole is a proton pump inhibitor used to treat gastroesophageal reflux disease (GERD) and peptic ulcers.",
+        interactions: ["Warfarin", "Digoxin", "Ketoconazole", "Iron supplements", "Vitamin B12"],
+        contraindications: ["Known hypersensitivity to pantoprazole", "Severe liver disease"],
+        monitoring: ["Magnesium levels", "Vitamin B12 levels", "Bone density", "Kidney function"],
+        cost: "₹20-60 per month",
+        foodInteractions: "Take before meals for best effect. May affect absorption of certain nutrients."
       }
     };
     
@@ -883,97 +1028,156 @@ app.get('/api/medicine/:name', async (req, res) => {
   }
 });
 
-// Find nearby doctors (enhanced)
+// Find nearby doctors (enhanced with Maharashtra doctors)
 app.get('/api/doctors/nearby', async (req, res) => {
   try {
     const { lat, lng, specialty, radius = 10 } = req.query;
     
-    // Enhanced mock doctor data
+    // Enhanced mock doctor data with Maharashtra doctors
     const doctors = [
       {
         id: 'doc1',
-        name: 'Dr. Sarah Johnson',
+        name: 'Dr. Rajesh Sharma',
         specialty: 'Internal Medicine',
         rating: 4.8,
-        reviewCount: 124,
-        distance: 0.5,
-        address: '123 Medical Center Dr, Springfield, IL 62701',
-        phone: '(555) 123-4567',
+        reviewCount: 156,
+        distance: 0.8,
+        address: 'Koregaon Park, Pune, Maharashtra 411001',
+        phone: '+91 98765 43210',
         availability: 'Available today',
-        acceptsInsurance: ['Blue Cross Blue Shield', 'Aetna', 'Medicare', 'Medicaid'],
-        coordinates: { lat: 39.7817, lng: -89.6501 },
-        languages: ['English', 'Spanish'],
-        yearsExperience: 15,
-        education: 'MD - Johns Hopkins University',
-        certifications: ['Board Certified Internal Medicine']
+        acceptsInsurance: ['Star Health', 'HDFC ERGO', 'ICICI Lombard', 'Cashless'],
+        coordinates: { lat: 18.5204, lng: 73.8567 },
+        languages: ['English', 'Hindi', 'Marathi'],
+        yearsExperience: 18,
+        education: 'MBBS, MD - KEM Hospital Mumbai',
+        certifications: ['Board Certified Internal Medicine', 'Diabetes Specialist'],
+        hospitalAffiliation: 'Ruby Hall Clinic'
       },
       {
         id: 'doc2',
-        name: 'Dr. Michael Chen',
+        name: 'Dr. Priya Deshmukh',
         specialty: 'Endocrinology',
         rating: 4.9,
-        reviewCount: 89,
-        distance: 1.2,
-        address: '456 Health Plaza, Springfield, IL 62702',
-        phone: '(555) 234-5678',
+        reviewCount: 124,
+        distance: 1.5,
+        address: 'Bandra West, Mumbai, Maharashtra 400050',
+        phone: '+91 98765 43211',
         availability: 'Next available: Tomorrow',
-        acceptsInsurance: ['Cigna', 'United Healthcare', 'Medicare', 'Humana'],
-        coordinates: { lat: 39.7901, lng: -89.6440 },
-        languages: ['English', 'Mandarin'],
-        yearsExperience: 12,
-        education: 'MD - Harvard Medical School',
-        certifications: ['Board Certified Endocrinology', 'Diabetes Specialist']
+        acceptsInsurance: ['Bajaj Allianz', 'New India Assurance', 'United India', 'Cashless'],
+        coordinates: { lat: 19.0596, lng: 72.8295 },
+        languages: ['English', 'Hindi', 'Marathi', 'Gujarati'],
+        yearsExperience: 15,
+        education: 'MBBS, MD, DM Endocrinology - AIIMS Delhi',
+        certifications: ['Board Certified Endocrinology', 'Thyroid Specialist', 'Diabetes Educator'],
+        hospitalAffiliation: 'Lilavati Hospital'
       },
       {
         id: 'doc3',
-        name: 'Dr. Emily Rodriguez',
+        name: 'Dr. Amit Patil',
         specialty: 'Cardiology',
         rating: 4.7,
-        reviewCount: 156,
-        distance: 2.1,
-        address: '789 Heart Center Blvd, Springfield, IL 62703',
-        phone: '(555) 345-6789',
+        reviewCount: 203,
+        distance: 2.2,
+        address: 'Shivaji Nagar, Pune, Maharashtra 411005',
+        phone: '+91 98765 43212',
         availability: 'Available this week',
-        acceptsInsurance: ['Blue Cross Blue Shield', 'Humana', 'Medicaid', 'Tricare'],
-        coordinates: { lat: 39.7701, lng: -89.6201 },
-        languages: ['English', 'Spanish'],
-        yearsExperience: 18,
-        education: 'MD - Mayo Clinic',
-        certifications: ['Board Certified Cardiology', 'Interventional Cardiology']
+        acceptsInsurance: ['Oriental Insurance', 'National Insurance', 'Reliance Health', 'Cashless'],
+        coordinates: { lat: 18.5314, lng: 73.8446 },
+        languages: ['English', 'Hindi', 'Marathi'],
+        yearsExperience: 22,
+        education: 'MBBS, MD, DM Cardiology - Seth GS Medical College',
+        certifications: ['Board Certified Cardiology', 'Interventional Cardiology', 'Echocardiography'],
+        hospitalAffiliation: 'Sahyadri Hospital'
       },
       {
         id: 'doc4',
-        name: 'Dr. James Wilson',
+        name: 'Dr. Sunita Joshi',
         specialty: 'Family Medicine',
         rating: 4.6,
-        reviewCount: 203,
+        reviewCount: 189,
         distance: 1.8,
-        address: '321 Family Care Ave, Springfield, IL 62704',
-        phone: '(555) 456-7890',
+        address: 'Thane West, Thane, Maharashtra 400601',
+        phone: '+91 98765 43213',
         availability: 'Available next week',
-        acceptsInsurance: ['Most major insurances accepted'],
-        coordinates: { lat: 39.7650, lng: -89.6350 },
-        languages: ['English'],
+        acceptsInsurance: ['Most major insurances accepted', 'Government schemes'],
+        coordinates: { lat: 19.2183, lng: 72.9781 },
+        languages: ['English', 'Hindi', 'Marathi'],
         yearsExperience: 20,
-        education: 'MD - University of Illinois',
-        certifications: ['Board Certified Family Medicine']
+        education: 'MBBS, MD Family Medicine - Grant Medical College',
+        certifications: ['Board Certified Family Medicine', 'Geriatric Care'],
+        hospitalAffiliation: 'Jupiter Hospital'
       },
       {
         id: 'doc5',
-        name: 'Dr. Lisa Park',
+        name: 'Dr. Vikram Kulkarni',
+        specialty: 'Gastroenterology',
+        rating: 4.8,
+        reviewCount: 142,
+        distance: 2.5,
+        address: 'Deccan Gymkhana, Pune, Maharashtra 411004',
+        phone: '+91 98765 43214',
+        availability: 'Available in 3 days',
+        acceptsInsurance: ['Star Health', 'Max Bupa', 'Care Health', 'Cashless'],
+        coordinates: { lat: 18.5089, lng: 73.8553 },
+        languages: ['English', 'Hindi', 'Marathi'],
+        yearsExperience: 16,
+        education: 'MBBS, MD, DM Gastroenterology - BJ Medical College',
+        certifications: ['Board Certified Gastroenterology', 'Hepatology', 'Endoscopy'],
+        hospitalAffiliation: 'Deenanath Mangeshkar Hospital'
+      },
+      {
+        id: 'doc6',
+        name: 'Dr. Meera Agarwal',
         specialty: 'Psychiatry',
         rating: 4.9,
-        reviewCount: 67,
-        distance: 2.5,
-        address: '555 Mental Health Center, Springfield, IL 62705',
-        phone: '(555) 567-8901',
-        availability: 'Available in 2 weeks',
-        acceptsInsurance: ['Blue Cross Blue Shield', 'Aetna', 'United Healthcare'],
-        coordinates: { lat: 39.7550, lng: -89.6150 },
-        languages: ['English', 'Korean'],
-        yearsExperience: 10,
-        education: 'MD - Northwestern University',
-        certifications: ['Board Certified Psychiatry', 'Addiction Medicine']
+        reviewCount: 98,
+        distance: 3.1,
+        address: 'Andheri East, Mumbai, Maharashtra 400069',
+        phone: '+91 98765 43215',
+        availability: 'Available in 1 week',
+        acceptsInsurance: ['HDFC ERGO', 'ICICI Lombard', 'Bajaj Allianz'],
+        coordinates: { lat: 19.1136, lng: 72.8697 },
+        languages: ['English', 'Hindi', 'Marathi', 'Bengali'],
+        yearsExperience: 12,
+        education: 'MBBS, MD Psychiatry - NIMHANS Bangalore',
+        certifications: ['Board Certified Psychiatry', 'Addiction Medicine', 'Child Psychology'],
+        hospitalAffiliation: 'Kokilaben Dhirubhai Ambani Hospital'
+      },
+      {
+        id: 'doc7',
+        name: 'Dr. Ravi Bhosale',
+        specialty: 'Orthopedics',
+        rating: 4.7,
+        reviewCount: 167,
+        distance: 2.8,
+        address: 'Hadapsar, Pune, Maharashtra 411028',
+        phone: '+91 98765 43216',
+        availability: 'Available tomorrow',
+        acceptsInsurance: ['Star Health', 'New India Assurance', 'Oriental Insurance'],
+        coordinates: { lat: 18.5018, lng: 73.9263 },
+        languages: ['English', 'Hindi', 'Marathi'],
+        yearsExperience: 19,
+        education: 'MBBS, MS Orthopedics - Sassoon Hospital',
+        certifications: ['Board Certified Orthopedics', 'Joint Replacement', 'Sports Medicine'],
+        hospitalAffiliation: 'Noble Hospital'
+      },
+      {
+        id: 'doc8',
+        name: 'Dr. Kavita Rane',
+        specialty: 'Dermatology',
+        rating: 4.8,
+        reviewCount: 134,
+        distance: 1.9,
+        address: 'Vashi, Navi Mumbai, Maharashtra 400703',
+        phone: '+91 98765 43217',
+        availability: 'Available today',
+        acceptsInsurance: ['Max Bupa', 'Care Health', 'Reliance Health'],
+        coordinates: { lat: 19.0728, lng: 73.0050 },
+        languages: ['English', 'Hindi', 'Marathi'],
+        yearsExperience: 14,
+        education: 'MBBS, MD Dermatology - Seth GS Medical College',
+        certifications: ['Board Certified Dermatology', 'Cosmetic Dermatology', 'Dermatopathology'],
+        hospitalAffiliation: 'Apollo Hospital Navi Mumbai'
       }
     ];
     
@@ -985,11 +1189,15 @@ app.get('/api/doctors/nearby', async (req, res) => {
       );
     }
     
+    // Sort by distance
+    filteredDoctors.sort((a, b) => a.distance - b.distance);
+    
     res.json({
       doctors: filteredDoctors,
       searchParams: { lat, lng, specialty, radius },
       totalFound: filteredDoctors.length,
-      message: filteredDoctors.length > 0 ? 'Doctors found in your area' : 'No doctors found matching your criteria'
+      message: filteredDoctors.length > 0 ? 'Doctors found in Maharashtra region' : 'No doctors found matching your criteria',
+      region: 'Maharashtra, India'
     });
   } catch (error) {
     console.error('Doctor search error:', error);
@@ -1019,6 +1227,7 @@ app.listen(PORT, () => {
   console.log(`🔍 Enhanced OCR with Tesseract.js enabled`);
   console.log(`📄 PDF processing with pdf2pic enabled`);
   console.log(`🧠 Advanced NLP analysis enabled`);
+  console.log(`🏥 Maharashtra doctors database loaded`);
 });
 
 export default app;
